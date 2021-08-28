@@ -5,6 +5,7 @@ using BadooAPI.Utills;
 using Newtonsoft.Json;
 using ServicesInterfaces;
 using ServicesModels;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,7 +34,7 @@ namespace BadooAPI
         /// </summary>
         /// <returns>Data for future API calls like Session id & User id</returns>
 
-        public async Task<string> AppStartUp(Data data)
+        public async Task<Data> AppStartUp(Data data)
         {
             var serverStartupJson = JsonFactory.GetJson(JsonTypes.SERVER_APP_STARTUP);
             if (serverStartupJson != null)
@@ -44,7 +45,7 @@ namespace BadooAPI
 
                 if (data.SessionId != null)
                 {
-                    data.XPing = "f71d4842782bd158dc92f78d3a9836c5";
+                    data.XPing = "b3da80cc837c7a1cd30029ae9a129a82";
                     var loginResponse = await Login(data);
                     //if LoginUS contains error, try LoginAM 
                     if (loginResponse.Contains("error"))
@@ -60,7 +61,7 @@ namespace BadooAPI
                         //}
                         //else
                         //{
-                        return "error";
+                        return data;
 
                     }
                     //continue with whatever worked
@@ -69,28 +70,30 @@ namespace BadooAPI
 
                     if (parsedResponse.body[0].client_login_success.session_id != null && parsedResponse.body[0].client_login_success.user_info.user_id != null)
                     {
-                        CredentialsResponse.Add("session_id", (string)parsedResponse.body[0].client_login_success.session_id);
-                        CredentialsResponse.Add("user_id", (string)parsedResponse.body[0].client_login_success.user_info.user_id);
-
-                        return CredentialsResponse.DictionaryToJson();
+                        data.SessionId = (string)parsedResponse.body[0].client_login_success.session_id;
+                        data.UserServiceId = (string)parsedResponse.body[0].client_login_success.user_info.user_id;
+                        data.HiddenUrl = (string)parsedResponse.body[1].client_common_settings.external_endpoints[1].url;
+                        data.Result = Result.Success;
+                        return data;
                     }
                     else
                     {
-                        return "error";
+                        return data;
                     }
                 }
                 else
                 {
-                    return "error";
+                    return data;
                 }
             }
             else
             {
-                return "error";
+                return data;
             }
         }
         public async Task<string> Login(Data data)
         {
+            data.XPing = "b3da80cc837c7a1cd30029ae9a129a82";
             var jsonMessage = JsonFactory.GetJson(JsonTypes.Login);
 
             var headers = jsonMessage.headers;
@@ -212,9 +215,9 @@ namespace BadooAPI
 
             var headers = jsonMessage.headers;
             var x = jsonMessage.data.body[0].server_get_user.user_id;
-            jsonMessage.data.body[0].server_get_user.user_id = data.UserId;
-            jsonMessage.data.body[0].server_get_user.user_field_filter.request_interests.user_id = data.UserId;
-            jsonMessage.data.body[0].server_get_user.visiting_source.person_id = data.UserId;
+            jsonMessage.data.body[0].server_get_user.user_id = data.UserServiceId;
+            jsonMessage.data.body[0].server_get_user.user_field_filter.request_interests.user_id = data.UserServiceId;
+            jsonMessage.data.body[0].server_get_user.visiting_source.person_id = data.UserServiceId;
 
             //data.XPing = Generator.GenerateXPing(jsonMessage.data);
 
@@ -257,9 +260,7 @@ namespace BadooAPI
         }
         public async Task<string> UploadImage(Data data)
         {
-            //HiddenUrl is retrieved by Login endpoint which happens on app startup on server 
-            //recieving stream of file
-
+            
             using HttpClient clientAsync = new HttpClient();
             using WebClient client = new WebClient();
 
@@ -267,13 +268,7 @@ namespace BadooAPI
             using HttpContent content = new MultipartContent("undefined", data.SessionId);
             using HttpContent content2 = new MultipartContent("album_type", "2");
 
-            ///////////////temporary until server is ready to send data
-            var path = @"C:\Users\Feuse135\source\repos\Services.Server\1.png";
-            using FileStream fsSource = new FileStream(path, FileMode.Open, FileAccess.Read);
-            data.ImageStream = fsSource;
-            /////////////////////
-
-            using var file_content = new ByteArrayContent(new StreamContent(data.ImageStream).ReadAsByteArrayAsync().Result);
+            using var file_content = new ByteArrayContent(new StreamContent(data.File.OpenReadStream()).ReadAsByteArrayAsync().Result);
             if (file_content != null)
             {
                 file_content.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
@@ -281,11 +276,7 @@ namespace BadooAPI
                 formData.Add(file_content, "file", "rand.jpeg");
                 var res = await clientAsync.PostAsync(data.HiddenUrl, formData);
                 var result = await res.Content.ReadAsStringAsync();
-                if (result.Contains("error"))
-                {
-                    //log error
-                    return "error";
-                }
+            
                 return await res.Content.ReadAsStringAsync();
             }
             //log error
@@ -326,19 +317,18 @@ namespace BadooAPI
                 }
             }
             CookieEntries[" session"] = data.SessionId;
-            CookieEntries[" HDR-X-User-id"] = data.UserId;
+            CookieEntries[" HDR-X-User-id"] = data.UserServiceId;
             var newCookie = CookieEntries.DictionaryToString();
             headers.Cookie = newCookie;
             return headers;
         }
         private static dynamic ConstructUserId(Data data, dynamic headers)
         {
-            //data coming from client side with 
             string userIdObj = (string)headers.UserId;
 
             var splited = userIdObj.Split("=");
             Dictionary<string, string> dict = new Dictionary<string, string>(10);
-            dict.Add(splited[0], data.UserId);
+            dict.Add(splited[0], data.UserServiceId);
             var userId = dict.DictionaryToString();
 
             headers.UserId = userId;
