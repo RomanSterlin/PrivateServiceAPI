@@ -9,13 +9,13 @@ using System.Threading.Tasks;
 
 namespace BadooAPI.Factories
 {
-    public class JsonFactory : IJsonFactory
+    public class JsonRequestBodyFactory : IJsonFactory
     {  
         public dynamic GetJson(JsonTypes types)
         {
             //Path should come from configuration file.
 
-            var json = File.ReadAllText(@"C:\Users\Feuse135\source\repos\BadooAPI\Utills\Requests.json");
+            var json = File.ReadAllText(@"C:\Users\Feuse135\source\repos\Services.Server\Utills\Requests.json");
             var deserialziedJson = JsonConvert.DeserializeObject<dynamic>(json);
 
             switch (types)
@@ -53,7 +53,7 @@ namespace BadooAPI.Factories
                 default:
                     break;
             }
-            throw new Exception("Service error");
+            return default;
         }
     }
 }

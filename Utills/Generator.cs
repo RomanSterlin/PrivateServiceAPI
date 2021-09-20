@@ -18,18 +18,15 @@ namespace BadooAPI.Utills
 
         public static async Task<string> SendAndReturn(dynamic payload, dynamic headers = null, string URI = API_URL)
         {
-
             HttpClient client = new HttpClient();
             HttpContent content = new StringContent(JsonConvert.SerializeObject(payload.data));
-            var rr = headers;
-            //STILL NEED TO MANUALY INPUT X- PING
+
             AddHeaders(content, payload, headers);
 
             var serializedObj = (string)JsonConvert.SerializeObject(payload.name);
             var t = payload.data;
             var newUri = serializedObj.Replace('"', ' ');
 
-            //on app startup sometimes needs with US url and sometimes with AM, different session id format
             var uri = URI + newUri.Trim();
             content.Headers.ContentType = null;
             var h = content.Headers;
@@ -72,9 +69,5 @@ namespace BadooAPI.Utills
             }
         }
 
-        public static void GenerateXPing(dynamic data)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
