@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,11 +8,7 @@ namespace BadooAPI.Utills
 {
     public static class ExtMethods
     {
-        private static ILogger _logger;
-        public static void Configure(ILogger logger)
-        {
-            _logger = logger;
-        }
+
         public static string DictionaryToString<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
         {
             return string.Join(";", dictionary.Select(kv => kv.Key + "=" + kv.Value).ToArray());
@@ -25,10 +21,5 @@ namespace BadooAPI.Utills
             return "{" + string.Join(",", entries) + "}";
         }
 
-        public static void LogException(this Exception e)
-        {
-            _logger.LogError(e.Message);
-            _logger.LogTrace(e.StackTrace);
-        }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +10,7 @@ namespace BadooAPI.Utills
     public class LoggerWrapper
     {
         private IServiceCollection _services;
-        private static ILogger _logger;
+       
 
         public LoggerWrapper(IServiceCollection services)
         {

@@ -130,7 +130,8 @@ namespace BadooAPI
             }
         }
         public async Task<int> Like(Data data)
-        {
+        {  // for testing
+           // return 0;
             var likesLeft = data.Likes;
             try
             {
@@ -153,11 +154,9 @@ namespace BadooAPI
 
                 jsonMessage.headers = ConstructHeaders(data, headers);
 
-                //possible that I am creating 5000+ HttpClients 
                 var response = await Generator.SendAndReturn(jsonMessage, headers);
                 if (response.Contains("error"))
                 {
-                    // for testing without xping script remove comment likesLeft--;
                     return likesLeft;
                 }
                 likesLeft--;
