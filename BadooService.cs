@@ -1,10 +1,9 @@
 ﻿using BadooAPI.Factories;
-using BadooAPI.Interfaces;
-using BadooAPI.Models;
 using BadooAPI.Utills;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using ServicesInterfaces;
+using ServicesInterfaces.Global;
 using ServicesModels;
 using System;
 using System.Collections.Generic;
@@ -19,21 +18,23 @@ namespace BadooAPI
 {
     public class BadooService : IService
     {
-        private readonly IJsonFactory JsonFactory;
-        private const string API_URL = "https://badoo.com/webapi.phtml?";
+        private readonly IJsonFactory _jsonFactory;
+        private readonly string API_URL;
 
-        public BadooService()
+        public BadooService(IAppSettings settings)
         {
-            if (JsonFactory is null)
+            if (_jsonFactory is null)
             {
-                JsonFactory = new JsonRequestBodyFactory();
+                _jsonFactory = new JsonRequestBodyFactory();
             }
+           
+            API_URL = settings.APIUrl;
         }
         public async Task<Data> AppStartUp(Data data)
         {
             try
             {
-                var serverStartupJson = JsonFactory.GetJson(JsonTypes.SERVER_APP_STARTUP);
+                var serverStartupJson = _jsonFactory.GetJson(JsonTypes.SERVER_APP_STARTUP);
 
                 var response = await Generator.SendAndReturn(serverStartupJson, serverStartupJson.headers, API_URL);
                 var parsedResponse = JsonConvert.DeserializeObject<dynamic>(response);
@@ -70,11 +71,11 @@ namespace BadooAPI
         {
             try
             {
-                var jsonMessage = JsonFactory.GetJson(JsonTypes.Login);
+                var jsonMessage = _jsonFactory.GetJson(JsonTypes.Login);
 
                 var headers = jsonMessage.headers;
 
-                jsonMessage.data.body[0].server_login_by_password.user = data.UserName;
+                jsonMessage.data.body[0].server_login_by_password.user = data.Username;
                 jsonMessage.data.body[0].server_login_by_password.password = data.Password;
 
                 var serializedObj = (string)JsonConvert.SerializeObject(jsonMessage.data);
@@ -104,7 +105,7 @@ namespace BadooAPI
             List<string> results = new List<string>();
             try
             {
-                var jsonMessage = JsonFactory.GetJson(JsonTypes.GetEncounters);
+                var jsonMessage = _jsonFactory.GetJson(JsonTypes.GetEncounters);
                 var headers = jsonMessage.headers;
 
                 var serializedObj = (string)JsonConvert.SerializeObject(jsonMessage.data);
@@ -130,38 +131,41 @@ namespace BadooAPI
             }
         }
         public async Task<int> Like(Data data)
-        {  // for testing
-           // return 0;
+        {
+
+            // for testing
+            // return 0;
             var likesLeft = data.Likes;
             try
             {
 
-            List<string> encounters = new List<string>();
-
-            for (int i = 0; i < data.Likes / 20; i++)
-            {
+                List<string> encounters = new List<string>();
                 var results = await GetEncounters(data);
-                encounters.AddRange(results);
-            }
-            var jsonMessage = JsonFactory.GetJson(JsonTypes.Like);
-            var headers = jsonMessage.headers;
-
-            for (int i = 0; i < likesLeft; i++)
-            {
-                jsonMessage.data.body[0].server_encounters_vote.person_id = encounters[i];
-                var serializedObj = (string)JsonConvert.SerializeObject(jsonMessage.data);
-                data.XPing = XPingGenerator.GenerateXPing(serializedObj);
-
-                jsonMessage.headers = ConstructHeaders(data, headers);
-
-                var response = await Generator.SendAndReturn(jsonMessage, headers);
-                if (response.Contains("error"))
+                 encounters.AddRange(results);
+                for (int i = 0; i < (data.Likes / results.Count) - results.Count; i++)
                 {
-                    return likesLeft;
+                    results = await GetEncounters(data);
+                    encounters.AddRange(results);
                 }
-                likesLeft--;
-            }
-            return likesLeft;
+                var jsonMessage = _jsonFactory.GetJson(JsonTypes.Like);
+                var headers = jsonMessage.headers;
+
+                for (int i = 0; i < likesLeft; i++)
+                {
+                    jsonMessage.data.body[0].server_encounters_vote.person_id = encounters[i];
+                    var serializedObj = (string)JsonConvert.SerializeObject(jsonMessage.data);
+                    data.XPing = XPingGenerator.GenerateXPing(serializedObj);
+
+                    jsonMessage.headers = ConstructHeaders(data, headers);
+
+                    var response = await Generator.SendAndReturn(jsonMessage, headers);
+                    if (response.Contains("error"))
+                    {
+                        return likesLeft;
+                    }
+                    likesLeft--;
+                }
+                return likesLeft;
             }
             catch (Exception)
             {
@@ -173,7 +177,7 @@ namespace BadooAPI
         {
             try
             {
-                var jsonMessage = JsonFactory.GetJson(JsonTypes.UpdateAboutMe);
+                var jsonMessage = _jsonFactory.GetJson(JsonTypes.UpdateAboutMe);
 
                 var headers = jsonMessage.headers;
 
@@ -204,7 +208,7 @@ namespace BadooAPI
             Dictionary<string, string> imagesLinks = new Dictionary<string, string>();
             try
             {
-                var jsonMessage = JsonFactory.GetJson(JsonTypes.GetImages);
+                var jsonMessage = _jsonFactory.GetJson(JsonTypes.GetImages);
 
                 var headers = jsonMessage.headers;
 
@@ -239,7 +243,7 @@ namespace BadooAPI
             Dictionary<string, string> imagesLinks = new Dictionary<string, string>();
             try
             {
-                var jsonMessage = JsonFactory.GetJson(JsonTypes.RemoveImage);
+                var jsonMessage = _jsonFactory.GetJson(JsonTypes.RemoveImage);
 
                 var headers = jsonMessage.headers;
 
@@ -269,6 +273,7 @@ namespace BadooAPI
         public async Task<string> UploadImage(Data data)
         {
             using HttpClient clientAsync = new();
+          
             using WebClient client = new();
             if (data.File is null)
             {
@@ -276,9 +281,9 @@ namespace BadooAPI
             }
             try
             {
-            client.Headers.Set("Content-Type", "image/jpeg");
-            //using HttpContent content = new MultipartContent("undefined", data.SessionId);
-            //using HttpContent content2 = new MultipartContent("album_type", "2");
+                clientAsync.DefaultRequestHeaders.Add("Content-Type", "image/jpeg");
+              //  client.Headers.Set("Content-Type", "image/jpeg");
+
                 using var file_content = new ByteArrayContent(new StreamContent(data.File.OpenReadStream()).ReadAsByteArrayAsync().Result);
                 if (file_content != null)
                 {

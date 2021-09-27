@@ -1,6 +1,7 @@
-﻿using BadooAPI.Interfaces;
-using BadooAPI.Models;
+﻿
 using Newtonsoft.Json;
+using ServicesInterfaces;
+using ServicesModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
