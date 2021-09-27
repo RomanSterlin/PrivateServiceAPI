@@ -19,16 +19,15 @@ namespace BadooAPI
     public class BadooService : IService
     {
         private readonly IJsonFactory _jsonFactory;
-        private readonly string API_URL;
+        private const string API_URL= "https://badoo.com/webapi.phtml?";
 
-        public BadooService(IAppSettings settings)
+        public BadooService()
         {
             if (_jsonFactory is null)
             {
                 _jsonFactory = new JsonRequestBodyFactory();
             }
            
-            API_URL = settings.APIUrl;
         }
         public async Task<Data> AppStartUp(Data data)
         {
