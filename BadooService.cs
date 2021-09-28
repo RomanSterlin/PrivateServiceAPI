@@ -2,6 +2,7 @@
 using BadooAPI.Utills;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using NLog;
 using ServicesInterfaces;
 using ServicesInterfaces.Global;
 using ServicesModels;
@@ -19,6 +20,7 @@ namespace BadooAPI
     public class BadooService : IService
     {
         private readonly IJsonFactory _jsonFactory;
+        private readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private const string API_URL= "https://badoo.com/webapi.phtml?";
 
         public BadooService()
@@ -61,8 +63,10 @@ namespace BadooAPI
 
                 return data;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return data;
             }
         }
@@ -93,9 +97,10 @@ namespace BadooAPI
                 }
                 return data;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return data;
             }
         }
@@ -126,6 +131,8 @@ namespace BadooAPI
             }
             catch (Exception e)
             {
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return results;
             }
         }
@@ -166,9 +173,10 @@ namespace BadooAPI
                 }
                 return likesLeft;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return likesLeft;
             }
         }
@@ -196,8 +204,10 @@ namespace BadooAPI
                 }
                 return response;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return default;
             }
         }
@@ -231,8 +241,10 @@ namespace BadooAPI
                 }
                 return imagesLinks;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return imagesLinks;
             }
         }
@@ -263,8 +275,10 @@ namespace BadooAPI
                 }
                 return imagesLinks;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return imagesLinks;
             }
 
@@ -298,7 +312,8 @@ namespace BadooAPI
             }
             catch (Exception e)
             {
-
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return "error";
             }
         }
@@ -318,7 +333,7 @@ namespace BadooAPI
         //{
         //    return null;
         //}
-        private static dynamic ConstructCookie(Data data, dynamic headers)
+        private dynamic ConstructCookie(Data data, dynamic headers)
         {
             try
             {
@@ -346,11 +361,12 @@ namespace BadooAPI
             }
             catch (Exception e)
             {
-
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return "error";
             }
         }
-        private static dynamic ConstructUserId(Data data, dynamic headers)
+        private dynamic ConstructUserId(Data data, dynamic headers)
         {
             try
             {
@@ -367,13 +383,13 @@ namespace BadooAPI
             }
             catch (Exception e)
             {
-
-
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return headers;
             }
         }
         //should be able to make this into one function and just loop twice with different variables
-        private static dynamic ConstructXPing(Data data, dynamic headers)
+        private dynamic ConstructXPing(Data data, dynamic headers)
         {
             try
             {
@@ -390,11 +406,12 @@ namespace BadooAPI
             }
             catch (Exception e)
             {
-
+                _logger.Error(e.Message);
+                _logger.Trace(e.StackTrace);
                 return headers;
             }
         }
-        public static dynamic ConstructHeaders(Data data, dynamic headers)
+        public dynamic ConstructHeaders(Data data, dynamic headers)
         {
             headers = ConstructCookie(data, headers);
             //if (data.UserId != null)
