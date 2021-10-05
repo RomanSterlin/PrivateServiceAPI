@@ -6,6 +6,7 @@ using NLog;
 using ServicesInterfaces;
 using ServicesInterfaces.Global;
 using ServicesModels;
+using ServicesModels.BadooAPI;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,7 +22,7 @@ namespace BadooAPI
     {
         private readonly IJsonFactory _jsonFactory;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        private const string API_URL= "https://badoo.com/webapi.phtml?";
+        private const string API_URL = "https://badoo.com/webapi.phtml?";
 
         public BadooService()
         {
@@ -29,7 +30,7 @@ namespace BadooAPI
             {
                 _jsonFactory = new JsonRequestBodyFactory();
             }
-           
+
         }
         public async Task<Data> AppStartUp(Data data)
         {
@@ -37,7 +38,7 @@ namespace BadooAPI
             {
                 var serverStartupJson = _jsonFactory.GetJson(JsonTypes.SERVER_APP_STARTUP);
 
-                var response = await Generator.SendAndReturn(serverStartupJson, serverStartupJson.headers, API_URL);
+                var response = await Generator.SendAndReturn(serverStartupJson, serverStartupJson.headers);
                 var parsedResponse = JsonConvert.DeserializeObject<dynamic>(response);
 
                 data.SessionId = parsedResponse.body[0].client_startup.anonymous_session_id;
@@ -59,6 +60,13 @@ namespace BadooAPI
                 data.SessionId = (string)parsedResponse.body[0].client_login_success.session_id;
                 data.UserServiceId = (string)parsedResponse.body[0].client_login_success.user_info.user_id;
                 data.HiddenUrl = (string)parsedResponse.body[1].client_common_settings.external_endpoints[1].url;
+                data.Name = (string)parsedResponse.body[0].client_login_success.user_info.name;
+                data.Age = (string)parsedResponse.body[0].client_login_success.user_info.age;
+                data.Premium = (bool)parsedResponse.body[1].client_login_success.user_info.verified_information.methods[7].is_connected;
+                if (string.IsNullOrEmpty(data.About))
+                {
+                    data.About = (string)parsedResponse.body[0].client_login_success.user_info.profile_fields[1].display_value;
+                }
                 data.Result = Result.Success;
 
                 return data;
@@ -87,12 +95,13 @@ namespace BadooAPI
 
                 jsonMessage.headers = ConstructHeaders(data, headers);
 
-                var response = (string)await Generator.SendAndReturn(jsonMessage, headers, API_URL);
+                var response = (string)await Generator.SendAndReturn(jsonMessage, headers);
 
                 if (!response.Contains("error"))
                 {
                     data.ResultString = response;
                     data.Result = Result.Success;
+
                     return data;
                 }
                 return data;
@@ -136,7 +145,7 @@ namespace BadooAPI
                 return results;
             }
         }
-        public async Task<int> Like(Data data)
+        public async Task<MessageState> Like(Data data)
         {
 
             // for testing
@@ -147,7 +156,7 @@ namespace BadooAPI
 
                 List<string> encounters = new List<string>();
                 var results = await GetEncounters(data);
-                 encounters.AddRange(results);
+                encounters.AddRange(results);
                 for (int i = 0; i < (data.Likes / results.Count) - results.Count; i++)
                 {
                     results = await GetEncounters(data);
@@ -165,19 +174,20 @@ namespace BadooAPI
                     jsonMessage.headers = ConstructHeaders(data, headers);
 
                     var response = await Generator.SendAndReturn(jsonMessage, headers);
-                    if (response.Contains("error"))
+                    if (response.Contains("0030-0080-0401"))
                     {
-                        return likesLeft;
+                        return new MessageState() { LikesLeft = likesLeft, IsComplete = false };
+                        //return likesLeft;
                     }
                     likesLeft--;
                 }
-                return likesLeft;
+                return new MessageState() { LikesLeft = likesLeft, IsComplete = true };
             }
             catch (Exception e)
             {
                 _logger.Error(e.Message);
                 _logger.Trace(e.StackTrace);
-                return likesLeft;
+                return new MessageState() { LikesLeft = likesLeft, IsComplete = false };
             }
         }
         public async Task<string> UpdateAboutMe(Data data)
@@ -196,7 +206,7 @@ namespace BadooAPI
                 data.XPing = XPingGenerator.GenerateXPing(serializedObj);
                 jsonMessage.headers = ConstructHeaders(data, headers);
 
-                var response = await Generator.SendAndReturn(jsonMessage, headers, API_URL);
+                var response = await Generator.SendAndReturn(jsonMessage, headers);
 
                 if (response.Contains("error"))
                 {
@@ -230,7 +240,7 @@ namespace BadooAPI
 
                 jsonMessage.headers = ConstructHeaders(data, headers);
 
-                var response = await Generator.SendAndReturn(jsonMessage, headers, API_URL);
+                var response = await Generator.SendAndReturn(jsonMessage, headers);
                 var parsedResponse = JsonConvert.DeserializeObject<dynamic>(response);
 
                 var images = parsedResponse.body[0].user.albums[0].photos;
@@ -265,7 +275,7 @@ namespace BadooAPI
 
                 jsonMessage.headers = ConstructHeaders(data, headers);
 
-                var response = await Generator.SendAndReturn(jsonMessage, headers, API_URL);
+                var response = await Generator.SendAndReturn(jsonMessage, headers);
                 var parsedResponse = JsonConvert.DeserializeObject<dynamic>(response);
                 var images = parsedResponse.body[0].album.photos;
 
@@ -286,7 +296,7 @@ namespace BadooAPI
         public async Task<string> UploadImage(Data data)
         {
             using HttpClient clientAsync = new();
-          
+
             using WebClient client = new();
             if (data.File is null)
             {
@@ -294,8 +304,8 @@ namespace BadooAPI
             }
             try
             {
-                clientAsync.DefaultRequestHeaders.Add("Content-Type", "image/jpeg");
-              //  client.Headers.Set("Content-Type", "image/jpeg");
+                //clientAsync.DefaultRequestHeaders.Add("Content-Type", "image/jpeg");
+                client.Headers.Set("Content-Type", "image/jpeg");
 
                 using var file_content = new ByteArrayContent(new StreamContent(data.File.OpenReadStream()).ReadAsByteArrayAsync().Result);
                 if (file_content != null)

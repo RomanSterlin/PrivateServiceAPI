@@ -15,8 +15,8 @@ namespace BadooAPI.Factories
         public dynamic GetJson(JsonTypes types)
         {
             //Path should come from configuration file.
-
-            var json = File.ReadAllText(@"C:\Users\Feuse135\source\repos\Services.Server\Utills\Requests.json");
+            //@"C:\inetpub\wwwroot\LoversApi\Utills\Requests.json"
+            var json = File.ReadAllText(@"C:\Users\Feuse135\source\repos\BadooAPI\Utills\Requests.json");
             var deserialziedJson = JsonConvert.DeserializeObject<dynamic>(json);
 
             switch (types)

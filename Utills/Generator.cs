@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -12,11 +14,26 @@ namespace BadooAPI.Utills
 {
     public static class Generator
     {
-        private const string API_URL_AM = "https://am1.badoo.com/webapi.phtml?";
-        private const string API_URL_US = "https://us1.badoo.com/webapi.phtml?";
-        private const string API_URL = "https://badoo.com/webapi.phtml?";
+        private static IConfigurationRoot Configuration;
+        private static string API_URL;
+        
+          
+        static Generator()
+        {
+            API_URL = BuildSettings();
+        }
+        public static string BuildSettings()
+        {
+            var builder = new ConfigurationBuilder()
+          .SetBasePath(Directory.GetCurrentDirectory())
+          .AddJsonFile("appsettings.json");
 
-        public static async Task<string> SendAndReturn(dynamic payload, dynamic headers = null, string URI = API_URL)
+            Configuration = builder.Build();
+
+            var value = Configuration.GetSection("AppSettings:APIUrl").Value;
+            return value;
+        }
+        public static async Task<string> SendAndReturn(dynamic payload, dynamic headers = null)
         {
             HttpClient client = new HttpClient();
             HttpContent content = new StringContent(JsonConvert.SerializeObject(payload.data));
@@ -24,13 +41,11 @@ namespace BadooAPI.Utills
             AddHeaders(content, payload, headers);
 
             var serializedObj = (string)JsonConvert.SerializeObject(payload.name);
-            var t = payload.data;
             var newUri = serializedObj.Replace('"', ' ');
 
-            var uri = URI + newUri.Trim();
+            var uri = API_URL + newUri.Trim();
             content.Headers.ContentType = null;
-            var h = content.Headers;
-            var day = JsonConvert.SerializeObject(payload.data);
+
             HttpResponseMessage response = await client.PostAsync(uri, content);
             var contents = await response.Content.ReadAsStringAsync();
 
