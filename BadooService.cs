@@ -1,5 +1,6 @@
 ﻿using BadooAPI.Factories;
 using BadooAPI.Utills;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using NLog;
@@ -21,6 +22,7 @@ namespace BadooAPI
     public class BadooService : IService
     {
         private readonly IJsonFactory _jsonFactory;
+
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private const string API_URL = "https://badoo.com/webapi.phtml?";
 
@@ -62,7 +64,7 @@ namespace BadooAPI
                 data.HiddenUrl = (string)parsedResponse.body[1].client_common_settings.external_endpoints[1].url;
                 data.Name = (string)parsedResponse.body[0].client_login_success.user_info.name;
                 data.Age = (string)parsedResponse.body[0].client_login_success.user_info.age;
-                data.Premium = (bool)parsedResponse.body[1].client_login_success.user_info.verified_information.methods[7].is_connected;
+                data.Premium  = (bool)parsedResponse.body[0].client_login_success.user_info.verified_information.methods[7].is_connected;
                 if (string.IsNullOrEmpty(data.About))
                 {
                     data.About = (string)parsedResponse.body[0].client_login_success.user_info.profile_fields[1].display_value;

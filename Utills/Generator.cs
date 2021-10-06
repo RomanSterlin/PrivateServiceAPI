@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -14,24 +15,22 @@ namespace BadooAPI.Utills
 {
     public static class Generator
     {
-        private static IConfigurationRoot Configuration;
-        private static string API_URL;
-        
-          
+        private static  IConfigurationRoot _configuration;
+        private static readonly string _apiUrl;
+
         static Generator()
         {
-            API_URL = BuildSettings();
+            _apiUrl = BuildSettings();
         }
         public static string BuildSettings()
         {
             var builder = new ConfigurationBuilder()
-          .SetBasePath(Directory.GetCurrentDirectory())
-          .AddJsonFile("appsettings.json");
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json");
 
-            Configuration = builder.Build();
+            _configuration = builder.Build();
 
-            var value = Configuration.GetSection("AppSettings:APIUrl").Value;
-            return value;
+            return _configuration.GetSection("AppSettings:APIUrl").Value;
         }
         public static async Task<string> SendAndReturn(dynamic payload, dynamic headers = null)
         {
@@ -40,10 +39,8 @@ namespace BadooAPI.Utills
 
             AddHeaders(content, payload, headers);
 
-            var serializedObj = (string)JsonConvert.SerializeObject(payload.name);
-            var newUri = serializedObj.Replace('"', ' ');
+            string uri = CleanURI(payload);
 
-            var uri = API_URL + newUri.Trim();
             content.Headers.ContentType = null;
 
             HttpResponseMessage response = await client.PostAsync(uri, content);
@@ -51,6 +48,14 @@ namespace BadooAPI.Utills
 
             return contents;
 
+        }
+
+        private static string CleanURI(dynamic payload)
+        {
+            var serializedObj = (string)JsonConvert.SerializeObject(payload.name);
+            var newUri = serializedObj.Replace('"', ' ');
+            var uri = _apiUrl + newUri.Trim();
+            return uri;
         }
 
         public static void AddHeaders(HttpContent content, dynamic payload, dynamic headers)

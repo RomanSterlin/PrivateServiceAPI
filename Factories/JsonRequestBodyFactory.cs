@@ -1,6 +1,8 @@
 ﻿
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using ServicesInterfaces;
+using ServicesInterfaces.Global;
 using ServicesModels;
 using System;
 using System.Collections.Generic;
@@ -11,14 +13,11 @@ using System.Threading.Tasks;
 namespace BadooAPI.Factories
 {
     public class JsonRequestBodyFactory : IJsonFactory
-    {  
+    {
         public dynamic GetJson(JsonTypes types)
         {
-            //Path should come from configuration file.
-            //@"C:\inetpub\wwwroot\LoversApi\Utills\Requests.json"
-            var json = File.ReadAllText(@"C:\Users\Feuse135\source\repos\BadooAPI\Utills\Requests.json");
+            var json = File.ReadAllText(GetSettingsFromFile());
             var deserialziedJson = JsonConvert.DeserializeObject<dynamic>(json);
-
             switch (types)
             {
                 case JsonTypes.Login:
@@ -55,6 +54,16 @@ namespace BadooAPI.Factories
                     break;
             }
             return default;
+        }
+        private static string GetSettingsFromFile()
+        {
+            var confBuilder = new ConfigurationBuilder()
+                       //what will be the current directory on production server?
+                       .SetBasePath(Environment.CurrentDirectory)
+                       .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build();
+            var val = confBuilder.GetSection("AppSettings:JsonRequestsPath").Value;
+
+            return confBuilder.GetSection("AppSettings:JsonRequestsPath").Value;
         }
     }
 }
