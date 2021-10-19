@@ -15,6 +15,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace BadooAPI
@@ -64,7 +65,7 @@ namespace BadooAPI
                 data.HiddenUrl = (string)parsedResponse.body[1].client_common_settings.external_endpoints[1].url;
                 data.Name = (string)parsedResponse.body[0].client_login_success.user_info.name;
                 data.Age = (string)parsedResponse.body[0].client_login_success.user_info.age;
-                data.Premium  = (bool)parsedResponse.body[0].client_login_success.user_info.verified_information.methods[7].is_connected;
+                data.Premium = (bool)parsedResponse.body[0].client_login_success.user_info.verified_information.methods[7].is_connected;
                 if (string.IsNullOrEmpty(data.About))
                 {
                     data.About = (string)parsedResponse.body[0].client_login_success.user_info.profile_fields[1].display_value;
@@ -105,6 +106,10 @@ namespace BadooAPI
                     data.Result = Result.Success;
 
                     return data;
+                }
+                else
+                {
+                    data.Result = Result.Failed;
                 }
                 return data;
             }
@@ -352,23 +357,37 @@ namespace BadooAPI
                 string Cookie = headers.Cookie;
                 var splited = Cookie.Split(";");
 
-                Dictionary<string, string> CookieEntries = new Dictionary<string, string>(20);
+                List<KeyValuePair<string, string>> CookieEntries = new List<KeyValuePair<string, string>>();
                 foreach (var entry in splited)
                 {
                     if (!entry.Contains("base_domain"))
                     {
                         var pair = entry.Split("=");
-                        CookieEntries.Add(pair[0], pair[1]);
+                        CookieEntries.Add(new KeyValuePair<string, string>(pair[0], pair[1]));
                     }
+
                     else
                     {
-                        CookieEntries.Add("fbm_107433747809=base_domain", ".badoo.com");
+                        CookieEntries.Add(new KeyValuePair<string, string>("fbm_107433747809=base_domain", ".badoo.com"));
                     }
                 }
-                CookieEntries[" session"] = data.SessionId;
-                CookieEntries[" HDR-X-User-id"] = data.UserServiceId;
-                var newCookie = CookieEntries.DictionaryToString();
-                headers.Cookie = newCookie;
+
+                int index = CookieEntries.FindIndex(i => i.Key == " session");
+                CookieEntries[index] = new KeyValuePair<string, string>(" session", data.SessionId);
+                index = CookieEntries.FindIndex(i => i.Key == " HDR-X-User-id");
+                CookieEntries[index] = new KeyValuePair<string, string>(" HDR-X-User-id", data.UserServiceId);
+
+                StringBuilder newCookie = new StringBuilder();
+                for (int i = 0; i < CookieEntries.Count; i++)
+                {
+                    newCookie.Append(String.Join('=', CookieEntries[i].Key, CookieEntries[i].Value));
+                    if (i != CookieEntries.Count-1)
+                    {
+                        newCookie.Append(';');
+                    }
+                }
+              
+                headers.Cookie = newCookie.ToString();
                 return headers;
             }
             catch (Exception e)

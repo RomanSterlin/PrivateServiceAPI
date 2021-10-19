@@ -14,6 +14,11 @@ namespace BadooAPI.Utills
             return string.Join(";", dictionary.Select(kv => kv.Key + "=" + kv.Value).ToArray());
         }
 
+        public static string KeyValuePairToString<TKey, TValue>(this IDictionary<TKey, TValue> pair)
+        {
+            return string.Join(";", pair.Select(kv => kv.Key + "=" + kv.Value).ToArray());
+        }
+
         public static string DictionaryToJson<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
         {
             var entries = dictionary.Select(d =>

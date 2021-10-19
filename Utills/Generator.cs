@@ -38,7 +38,7 @@ namespace BadooAPI.Utills
             HttpContent content = new StringContent(JsonConvert.SerializeObject(payload.data));
 
             AddHeaders(content, payload, headers);
-
+            var x = payload.data;
             string uri = CleanURI(payload);
 
             content.Headers.ContentType = null;
